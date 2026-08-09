@@ -74,4 +74,35 @@ class DokumenController extends Controller
 
         return redirect()->route('status-dokumen')->with('success', 'Dokumen berhasil diunggah.');
     }
+
+    /**
+     * Upload ulang file revisi dari panitia.
+     */
+    public function reupload(Request $request, Dokumen $dokumen)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:pdf,doc,docx,xls,xlsx|mimetypes:application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet|max:10240',
+        ]);
+
+        if ($dokumen->uploader_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $path = $request->file('file')->store('dokumen', 'public');
+
+        $dokumen->update([
+            'file_path' => $path,
+            'status' => 'menunggu_validasi', // Rollback ke draft/validasi awal
+            'catatan_revisi' => null,
+        ]);
+
+        \App\Models\LogAktivitas::create([
+            'dokumen_id' => $dokumen->id,
+            'user_id' => auth()->id(),
+            'aksi' => 'unggah_revisi',
+            'keterangan' => 'Panitia mengunggah ulang dokumen hasil revisi.',
+        ]);
+
+        return back()->with('success', 'Dokumen hasil revisi berhasil diunggah.');
+    }
 }

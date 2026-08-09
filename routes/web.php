@@ -7,6 +7,8 @@ use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\RepositoryController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\UlasanController;
+use App\Http\Controllers\UlasanIdeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ValidasiController;
 use Illuminate\Support\Facades\Route;
@@ -64,6 +66,10 @@ Route::middleware(['auth', 'role:panitia'])->group(function () {
     Route::get('/upload', [DokumenController::class, 'create'])->name('upload');
     Route::post('/upload', [DokumenController::class, 'store'])->name('upload.store');
     Route::get('/status-dokumen', [DokumenController::class, 'index'])->name('status-dokumen');
+    Route::post('/status-dokumen/{dokumen}/reupload', [DokumenController::class, 'reupload'])->name('status-dokumen.reupload');
+    
+    Route::get('/ulasan-dokumen', [UlasanController::class, 'index'])->name('ulasan-dokumen');
+    Route::post('/ulasan-dokumen/{dokumen}', [UlasanController::class, 'store'])->name('ulasan-dokumen.store');
 });
 
 // Admin routes
@@ -88,6 +94,9 @@ Route::middleware(['auth', 'role:divisi_ide'])->group(function () {
     Route::get('/review', [ReviewController::class, 'index'])->name('review');
     Route::post('/review/{dokumen}/setujui', [ReviewController::class, 'setujui'])->name('review.setujui');
     Route::post('/review/{dokumen}/revisi', [ReviewController::class, 'revisi'])->name('review.revisi');
+
+    Route::get('/ulasan-umpan-balik', [UlasanIdeController::class, 'index'])->name('ulasan-umpan-balik');
+    Route::post('/ulasan-umpan-balik/{dokumen}/sintesis', [UlasanIdeController::class, 'sintesis'])->name('ulasan-umpan-balik.sintesis');
 });
 
 // Pimpinan routes

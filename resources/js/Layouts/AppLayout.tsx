@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +25,7 @@ const NAV_BY_ROLE: Record<string, { label: string; href: string; icon: React.Ele
     { label: 'Dashboard',       href: '/dashboard',      icon: LayoutDashboard },
     { label: 'Upload Dokumen',  href: '/upload',         icon: Upload },
     { label: 'Status Dokumen',  href: '/status-dokumen', icon: FileText },
+    { label: 'Ulasan Dokumen',  href: '/ulasan-dokumen', icon: MessageSquare },
   ],
   admin: [
     { label: 'Dashboard',         href: '/dashboard',        icon: LayoutDashboard },
@@ -32,9 +34,10 @@ const NAV_BY_ROLE: Record<string, { label: string; href: string; icon: React.Ele
     { label: 'Kelola Pengguna',   href: '/kelola-pengguna',  icon: Users },
   ],
   divisi_ide: [
-    { label: 'Dashboard',             href: '/dashboard',  icon: LayoutDashboard },
-    { label: 'Review Dokumen',        href: '/review',     icon: Eye },
-    { label: 'Knowledge Repository',  href: '/repository', icon: BookOpen },
+    { label: 'Dashboard',             href: '/dashboard',           icon: LayoutDashboard },
+    { label: 'Review Dokumen',        href: '/review',              icon: Eye },
+    { label: 'Knowledge Repository',  href: '/repository',          icon: BookOpen },
+    { label: 'Ulasan & Umpan Balik',  href: '/ulasan-umpan-balik',  icon: MessageSquare },
   ],
   pimpinan: [
     { label: 'Dashboard',            href: '/dashboard',  icon: LayoutDashboard },

@@ -72,4 +72,9 @@ class Dokumen extends Model
     {
         return $this->hasMany(LogAktivitas::class);
     }
+
+    public function ulasans(): HasMany
+    {
+        return $this->hasMany(Ulasan::class);
+    }
 }

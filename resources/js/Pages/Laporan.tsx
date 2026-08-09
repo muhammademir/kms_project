@@ -1,5 +1,6 @@
 import AppLayout from "@/Layouts/AppLayout";
-import { BarChart3, FileText, Download, TrendingUp, PieChart, Clock } from "lucide-react";
+import { BarChart3, FileText, Download, TrendingUp, PieChart, Clock, Star, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
@@ -19,11 +20,19 @@ interface LaporanProps {
     bulan: string; // YYYY-MM
     total: number;
   }[];
+  insightUlasan: {
+    avg_rating_all: number | null;
+    dokumen_bermasalah: {
+      judul: string;
+      rating: number;
+      ulasan_count: number;
+    }[];
+  };
 }
 
 Laporan.layout = (page: React.ReactNode) => <AppLayout children={page} />;
 
-export default function Laporan({ ringkasan, perKategori, perBulan }: LaporanProps) {
+export default function Laporan({ ringkasan, perKategori, perBulan, insightUlasan }: LaporanProps) {
   const totalSeluruh = ringkasan.total_terbit + ringkasan.total_menunggu + ringkasan.total_revisi;
 
   // Format YYYY-MM to readable month (e.g., 2026-08 -> Agustus 2026)
@@ -186,6 +195,51 @@ export default function Laporan({ ringkasan, perKategori, perBulan }: LaporanPro
             )}
           </div>
         </motion.div>
+      </div>
+      <div className="mt-8 border-t border-slate-200 pt-8">
+        <h2 className="text-lg font-bold text-[#0f1923] mb-4 flex items-center gap-2">
+          <Star className="w-5 h-5 text-[#e9b84a] fill-[#e9b84a]" />
+          Insight Kepuasan Dokumen
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 flex flex-col justify-center items-center">
+             <div className="text-slate-500 font-medium mb-2 text-sm uppercase tracking-wide">Rata-rata Skor Keseluruhan</div>
+             <div className="text-5xl font-bold text-slate-900 mb-2">{insightUlasan.avg_rating_all ? parseFloat(insightUlasan.avg_rating_all.toString()).toFixed(1) : '-'}</div>
+             <div className="flex gap-1 text-[#e9b84a]">
+                {[1,2,3,4,5].map(star => (
+                   <Star key={star} className={cn("w-5 h-5", insightUlasan.avg_rating_all && star <= Math.round(insightUlasan.avg_rating_all) ? "fill-[#e9b84a]" : "text-slate-200 fill-slate-200")} />
+                ))}
+             </div>
+             <p className="text-xs text-slate-400 mt-3 text-center">Berdasarkan ulasan pengguna di seluruh dokumen.</p>
+          </div>
+
+          <div className="lg:col-span-2 bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+             <div className="px-6 py-4 border-b border-slate-50 bg-[#fff8e6]/50">
+               <h3 className="text-sm font-bold text-[#b08726] uppercase tracking-wide flex items-center gap-2">
+                 <AlertCircle className="w-4 h-4" /> Dokumen Perlu Perhatian
+               </h3>
+             </div>
+             <div className="p-0">
+               {insightUlasan.dokumen_bermasalah.length === 0 ? (
+                 <p className="text-center text-sm text-slate-400 py-8">Tidak ada dokumen bermasalah saat ini.</p>
+               ) : (
+                 <ul className="divide-y divide-slate-50">
+                   {insightUlasan.dokumen_bermasalah.map((doc, idx) => (
+                     <li key={idx} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                       <div>
+                         <p className="font-semibold text-slate-900 text-sm line-clamp-1">{doc.judul}</p>
+                         <p className="text-xs text-slate-500 mt-0.5">Rating: <span className="font-bold text-red-600">{doc.rating}</span> • {doc.ulasan_count} ulasan</p>
+                       </div>
+                       <span className="shrink-0 ml-4 inline-flex items-center rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
+                         Tinjau Ulang
+                       </span>
+                     </li>
+                   ))}
+                 </ul>
+               )}
+             </div>
+          </div>
+        </div>
       </div>
     </div>
   );

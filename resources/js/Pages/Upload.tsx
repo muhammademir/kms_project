@@ -12,6 +12,8 @@ interface UploadProps {
 
 Upload.layout = (page: React.ReactNode) => <AppLayout children={page} />;
 
+import { toast } from 'sonner';
+
 export default function Upload({ kategoris }: UploadProps) {
   const { data, setData, post, progress, errors, processing } = useForm({
     judul: '',
@@ -23,6 +25,10 @@ export default function Upload({ kategoris }: UploadProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (data.file && data.file.size > 10 * 1024 * 1024) {
+      toast.error('Ukuran maksimal dokumen adalah 10 MB.');
+      return;
+    }
     post('/upload');
   };
 

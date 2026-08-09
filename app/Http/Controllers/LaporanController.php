@@ -44,7 +44,25 @@ class LaporanController extends Controller
                 'total' => $d->total,
             ]);
 
-        return Inertia::render('Laporan', compact('ringkasan', 'perKategori', 'perBulan'));
+        $insightUlasan = [
+            'avg_rating_all' => \App\Models\Ulasan::avg('rating'),
+            'dokumen_bermasalah' => Dokumen::where('status', 'dipublikasikan')
+                ->whereHas('ulasans')
+                ->withCount('ulasans')
+                ->withAvg('ulasans', 'rating')
+                ->having('ulasans_avg_rating', '<', 3.0)
+                ->orHaving('ulasans_count', '>=', 5) // Simplified for insight, just highlighting highly reviewed or low rated
+                ->orderBy('ulasans_avg_rating', 'asc')
+                ->take(5)
+                ->get()
+                ->map(fn($d) => [
+                    'judul' => $d->judul,
+                    'rating' => round($d->ulasans_avg_rating, 2),
+                    'ulasan_count' => $d->ulasans_count,
+                ])
+        ];
+
+        return Inertia::render('Laporan', compact('ringkasan', 'perKategori', 'perBulan', 'insightUlasan'));
     }
 
     public function exportPdf()

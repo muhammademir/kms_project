@@ -2,7 +2,51 @@ import AppLayout from "@/Layouts/AppLayout";
 import FaseBadge from "@/components/FaseBadge";
 import { FileText, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
-import { Link } from "@inertiajs/react";
+import { Link, useForm } from "@inertiajs/react";
+import React from "react";
+
+import { toast } from 'sonner';
+
+const ReuploadForm = ({ dokumenId }: { dokumenId: number }) => {
+  const { data, setData, post, processing, errors, progress } = useForm({
+    file: null as File | null,
+  });
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (data.file && data.file.size > 10 * 1024 * 1024) {
+      toast.error('Ukuran maksimal dokumen adalah 10 MB.');
+      return;
+    }
+
+    post(`/status-dokumen/${dokumenId}/reupload`, {
+      forceFormData: true,
+      onSuccess: () => setData('file', null)
+    });
+  };
+
+  return (
+    <form onSubmit={submit} className="mt-4 border border-dashed border-slate-300 rounded-lg p-4 bg-slate-50/50 flex flex-col items-start gap-3">
+      <p className="text-xs font-semibold text-slate-700">Unggah Dokumen Hasil Revisi</p>
+      <input
+        type="file"
+        onChange={e => setData('file', e.target.files ? e.target.files[0] : null)}
+        className="block w-full text-sm text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-[#0f1923] file:text-white hover:file:bg-[#1a2744] cursor-pointer"
+        accept=".pdf,.doc,.docx,.xls,.xlsx"
+      />
+      {errors.file && <p className="text-red-500 text-xs">{errors.file}</p>}
+      <button
+        type="submit"
+        disabled={!data.file || processing}
+        className="bg-[#e9b84a] text-[#0f1923] px-4 py-2 rounded text-xs font-bold disabled:opacity-50 hover:bg-[#d6a537] transition-colors"
+      >
+        {processing ? 'Mengunggah...' : 'Kirim Revisi'}
+      </button>
+      {progress && <progress value={progress.percentage} max="100" className="w-full h-1 mt-1 rounded overflow-hidden" />}
+    </form>
+  );
+};
 
 interface StatusDokumenProps {
   dokumens: {
@@ -99,9 +143,13 @@ export default function StatusDokumen({ dokumens }: StatusDokumenProps) {
                               <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                               <div className="text-xs text-red-800 leading-relaxed">
                                 <span className="font-semibold block mb-0.5">Catatan Revisi:</span>
-                                {doc.catatan_revisi}
+                                <div className="whitespace-pre-wrap">{doc.catatan_revisi}</div>
                               </div>
                             </div>
+                          )}
+
+                          {doc.status === 'revisi' && (
+                            <ReuploadForm dokumenId={doc.id} />
                           )}
                         </div>
                       </div>
