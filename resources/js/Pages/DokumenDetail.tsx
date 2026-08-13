@@ -128,9 +128,7 @@ export default function DokumenDetail({ dokumen }: DokumenDetailProps) {
               </div>
               
               <a 
-                href={`/storage/${dokumen.file_path}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
+                href={`/repository/${dokumen.id}/download`}
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all h-9 px-4 py-2 bg-[#1a2744] hover:bg-[#0f1923] text-white"
               >
                 <Download className="w-4 h-4 mr-2" /> Unduh Dokumen

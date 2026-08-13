@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Dokumen;
 use App\Models\Kategori;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RepositoryController extends Controller
 {
@@ -75,6 +77,37 @@ class RepositoryController extends Controller
                     'tanggal'  => $l->created_at?->format('d M Y'),
                 ]),
             ],
+        ]);
+    }
+
+    /**
+     * Download file dokumen dengan header yang proper.
+     * Menghindari browser "not responding" saat download .docx / file besar.
+     */
+    public function download(Dokumen $dokumen)
+    {
+        abort_unless($dokumen->status === 'dipublikasikan', 404);
+
+        $path = $dokumen->file_path; // e.g. "dokumen/xxxx.docx"
+
+        abort_unless(Storage::disk('public')->exists($path), 404);
+
+        $fullPath  = Storage::disk('public')->path($path);
+        $fileName  = basename($path); // nama file asli saat diupload
+        $mimeType  = Storage::disk('public')->mimeType($path);
+
+        return response()->streamDownload(function () use ($fullPath) {
+            $handle = fopen($fullPath, 'rb');
+            while (!feof($handle)) {
+                echo fread($handle, 8192); // 8KB chunks
+                flush();
+            }
+            fclose($handle);
+        }, $fileName, [
+            'Content-Type'        => $mimeType,
+            'Content-Length'      => Storage::disk('public')->size($path),
+            'Content-Disposition' => 'attachment; filename="' . rawurlencode($fileName) . '"',
+            'Cache-Control'       => 'no-store',
         ]);
     }
 }

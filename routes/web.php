@@ -59,6 +59,7 @@ Route::middleware('auth')->group(function () {
     // Repository — semua role
     Route::get('/repository', [RepositoryController::class, 'index'])->name('repository');
     Route::get('/repository/{dokumen}', [RepositoryController::class, 'show'])->name('repository.show');
+    Route::get('/repository/{dokumen}/download', [RepositoryController::class, 'download'])->name('repository.download');
 });
 
 // Panitia routes
