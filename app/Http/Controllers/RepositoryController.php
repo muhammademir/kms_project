@@ -90,7 +90,9 @@ class RepositoryController extends Controller
 
         $path = $dokumen->file_path; // e.g. "dokumen/xxxx.docx"
 
-        abort_unless(Storage::disk('public')->exists($path), 404);
+        if (!Storage::disk('public')->exists($path)) {
+            abort(404, 'File tidak ditemukan. Hubungi Mas Admin!.');
+        }
 
         $fullPath  = Storage::disk('public')->path($path);
         $fileName  = basename($path); // nama file asli saat diupload
