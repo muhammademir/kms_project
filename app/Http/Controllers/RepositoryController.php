@@ -53,7 +53,7 @@ class RepositoryController extends Controller
     {
         abort_unless($dokumen->status === 'dipublikasikan', 404);
 
-        $dokumen->load('kategori:id,nama,kode', 'uploader:id,name', 'logs.user:id,name');
+        $dokumen->load('kategori:id,nama,kode', 'uploader:id,name', 'logs.user:id,name', 'links');
 
         return Inertia::render('DokumenDetail', [
             'dokumen' => [
@@ -68,8 +68,14 @@ class RepositoryController extends Controller
                 'status'        => $dokumen->status,
                 'status_label'  => $dokumen->status_label,
                 'file_path'     => $dokumen->file_path,
+                'file_name'     => $dokumen->file_name,
                 'published_at'  => $dokumen->published_at?->format('d M Y'),
                 'created_at'    => $dokumen->created_at?->format('d M Y'),
+                'links'         => $dokumen->links->map(fn ($l) => [
+                    'id'       => $l->id,
+                    'url'      => $l->url,
+                    'platform' => $l->platform,
+                ]),
                 'logs'          => $dokumen->logs->map(fn ($l) => [
                     'aksi'     => $l->aksi,
                     'catatan'  => $l->catatan,
@@ -95,7 +101,8 @@ class RepositoryController extends Controller
         }
 
         $fullPath  = Storage::disk('public')->path($path);
-        $fileName  = basename($path); // nama file asli saat diupload
+        // Gunakan nama asli jika tersedia, fallback ke basename path untuk dokumen lama
+        $fileName  = $dokumen->file_name ?: basename($path);
         $mimeType  = Storage::disk('public')->mimeType($path);
 
         return response()->streamDownload(function () use ($fullPath) {

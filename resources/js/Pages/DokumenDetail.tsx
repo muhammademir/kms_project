@@ -1,6 +1,7 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PhaseTimeline from "@/components/PhaseTimeline";
 import FaseBadge from "@/components/FaseBadge";
+import LinkBadgeList from "@/components/LinkBadgeList";
 import { Link } from "@inertiajs/react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Download, FileText, Calendar, User, FolderOpen, Tag } from "lucide-react";
@@ -18,9 +19,11 @@ interface DokumenDetailProps {
     uploader: string;
     status: string;
     status_label: string;
-    file_path: string;
+    file_path: string | null;
+    file_name: string | null;
     published_at: string | null;
     created_at: string;
+    links: { id: number; url: string; platform: string }[];
     logs: {
       aksi: string;
       catatan: string | null;
@@ -116,23 +119,35 @@ export default function DokumenDetail({ dokumen }: DokumenDetailProps) {
               {dokumen.deskripsi || "Tidak ada deskripsi yang ditambahkan untuk dokumen ini."}
             </p>
 
-            <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-                  <FileText className="w-6 h-6" />
+            <div className="pt-6 border-t border-slate-100 space-y-4">
+              {/* File download — hanya jika ada file */}
+              {dokumen.file_path && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
+                      <FileText className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-700 text-sm">File Dokumen</p>
+                      <p className="text-xs text-slate-500">{dokumen.file_name || dokumen.file_path.split('/').pop()}</p>
+                    </div>
+                  </div>
+                  <a
+                    href={`/repository/${dokumen.id}/download`}
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all h-9 px-4 py-2 bg-[#1a2744] hover:bg-[#0f1923] text-white"
+                  >
+                    <Download className="w-4 h-4 mr-2" /> Unduh Dokumen
+                  </a>
                 </div>
+              )}
+
+              {/* Link Referensi */}
+              {dokumen.links.length > 0 && (
                 <div>
-                  <p className="font-semibold text-slate-700 text-sm">File Dokumen</p>
-                  <p className="text-xs text-slate-500">{dokumen.file_path.split('/').pop()}</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Link Referensi</p>
+                  <LinkBadgeList links={dokumen.links} />
                 </div>
-              </div>
-              
-              <a 
-                href={`/repository/${dokumen.id}/download`}
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all h-9 px-4 py-2 bg-[#1a2744] hover:bg-[#0f1923] text-white"
-              >
-                <Download className="w-4 h-4 mr-2" /> Unduh Dokumen
-              </a>
+              )}
             </div>
           </motion.div>
 

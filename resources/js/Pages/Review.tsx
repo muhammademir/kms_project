@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AppLayout from "@/Layouts/AppLayout";
 import FaseBadge from "@/components/FaseBadge";
+import LinkBadgeList from "@/components/LinkBadgeList";
 import { FileText, CheckCircle2, XCircle, Download } from "lucide-react";
 import { motion } from "framer-motion";
 import { useForm } from "@inertiajs/react";
@@ -28,7 +29,9 @@ interface ReviewProps {
     kategori: string;
     uploader: string;
     status: string;
-    file_path: string;
+    file_path: string | null;
+    file_name: string | null;
+    links: { id: number; url: string; platform: string }[];
     created_at: string;
   }[];
 }
@@ -129,13 +132,17 @@ export default function Review({ dokumens }: ReviewProps) {
                           {doc.deskripsi && (
                             <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">{doc.deskripsi}</p>
                           )}
-                          <a 
-                            href={`/storage/${doc.file_path}`} 
-                            target="_blank" 
-                            className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 mt-3 hover:underline"
-                          >
-                            <Download className="w-3.5 h-3.5" /> Unduh Dokumen
-                          </a>
+                          {/* Links compact */}
+                          <LinkBadgeList links={doc.links} compact />
+                          {/* File download */}
+                          {doc.file_path && (
+                            <a
+                              href={`/dokumen/${doc.id}/download`}
+                              className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 mt-3 hover:underline"
+                            >
+                              <Download className="w-3.5 h-3.5" /> Unduh File
+                            </a>
+                          )}
                         </div>
                       </div>
                     </td>

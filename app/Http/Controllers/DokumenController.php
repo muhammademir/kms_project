@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Dokumen;
+use App\Models\DokumenLink;
 use App\Models\Kategori;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class DokumenController extends Controller
@@ -49,30 +51,100 @@ class DokumenController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'judul'       => 'required|string|max:255',
-            'deskripsi'   => 'nullable|string',
-            'kategori_id' => 'required|exists:kategoris,id',
-            'jenis'       => 'nullable|string|max:100',
-            'file'        => 'required|file|mimes:pdf,doc,docx,xls,xlsx|max:10240',
+        $request->validate([
+            'judul'         => 'required|string|max:255',
+            'deskripsi'     => 'nullable|string',
+            'kategori_id'   => 'required|exists:kategoris,id',
+            'jenis'         => 'nullable|string|max:100',
+            'files'         => 'nullable|array',
+            'files.*'       => 'file|mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg,webp|max:10240',
+            'links'         => 'nullable|array',
+            'links.*'       => [
+                'nullable',
+                'url',
+                'regex:/^https?:\/\//i',
+                'max:2048',
+            ],
         ]);
 
-        $path = $request->file('file')->store('dokumen', 'public');
+        // Wajib minimal satu: file atau link
+        $hasFiles = !empty($request->file('files'));
+        $hasLinks = !empty(array_filter($request->input('links', [])));
 
-        // Generate nomor dokumen otomatis
-        $count = Dokumen::count() + 1;
-        $nomor = 'DOK-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+        if (!$hasFiles && !$hasLinks) {
+            return back()->withErrors([
+                'files' => 'Minimal satu file atau satu link referensi harus diisi.',
+            ])->withInput();
+        }
 
-        Dokumen::create([
-            ...$validated,
-            'file_path'     => $path,
-            'uploader_id'   => $request->user()->id,
-            'created_by'    => $request->user()->id,
-            'nomor_dokumen' => $nomor,
-            'status'        => 'menunggu_validasi',
-        ]);
+        $uploadedCount = 0;
+        $files         = $request->file('files') ?? [];
+        $links         = array_filter($request->input('links', []));
 
-        return redirect()->route('status-dokumen')->with('success', 'Dokumen berhasil diunggah.');
+        // Jika ada file: buat satu dokumen per file
+        if ($hasFiles) {
+            foreach ($files as $file) {
+                $path = $file->store('dokumen', 'public');
+
+                $count = Dokumen::count() + 1;
+                $nomor = 'DOK-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+
+                $dokumen = Dokumen::create([
+                    'judul'         => $request->judul,
+                    'deskripsi'     => $request->deskripsi,
+                    'kategori_id'   => $request->kategori_id,
+                    'jenis'         => $request->jenis,
+                    'file_path'     => $path,
+                    'file_name'     => $file->getClientOriginalName(),
+                    'uploader_id'   => $request->user()->id,
+                    'created_by'    => $request->user()->id,
+                    'nomor_dokumen' => $nomor,
+                    'status'        => 'menunggu_validasi',
+                ]);
+
+                // Attach links ke masing-masing dokumen
+                foreach ($links as $url) {
+                    $dokumen->links()->create([
+                        'url'      => $url,
+                        'platform' => DokumenLink::detectPlatform($url),
+                    ]);
+                }
+
+                $uploadedCount++;
+            }
+        } else {
+            // Hanya link, tanpa file — buat satu dokumen
+            $count = Dokumen::count() + 1;
+            $nomor = 'DOK-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+
+            $dokumen = Dokumen::create([
+                'judul'         => $request->judul,
+                'deskripsi'     => $request->deskripsi,
+                'kategori_id'   => $request->kategori_id,
+                'jenis'         => $request->jenis,
+                'file_path'     => null,
+                'file_name'     => null,
+                'uploader_id'   => $request->user()->id,
+                'created_by'    => $request->user()->id,
+                'nomor_dokumen' => $nomor,
+                'status'        => 'menunggu_validasi',
+            ]);
+
+            foreach ($links as $url) {
+                $dokumen->links()->create([
+                    'url'      => $url,
+                    'platform' => DokumenLink::detectPlatform($url),
+                ]);
+            }
+
+            $uploadedCount++;
+        }
+
+        $msg = $uploadedCount === 1
+            ? 'Dokumen berhasil diunggah.'
+            : "{$uploadedCount} dokumen berhasil diunggah.";
+
+        return redirect()->route('status-dokumen')->with('success', $msg);
     }
 
     /**
@@ -88,11 +160,13 @@ class DokumenController extends Controller
             abort(403);
         }
 
-        $path = $request->file('file')->store('dokumen', 'public');
+        $file = $request->file('file');
+        $path = $file->store('dokumen', 'public');
 
         $dokumen->update([
-            'file_path' => $path,
-            'status' => 'menunggu_validasi', // Rollback ke draft/validasi awal
+            'file_path'     => $path,
+            'file_name'     => $file->getClientOriginalName(), // nama asli file revisi
+            'status'        => 'menunggu_validasi', // Rollback ke draft/validasi awal
             'catatan_revisi' => null,
         ]);
 
@@ -104,5 +178,45 @@ class DokumenController extends Controller
         ]);
 
         return back()->with('success', 'Dokumen hasil revisi berhasil diunggah.');
+    }
+
+    /**
+     * Download dokumen — accessible untuk semua role, semua status.
+     * Selalu set Content-Disposition agar nama file yang tersimpan benar.
+     */
+    public function download(Dokumen $dokumen)
+    {
+        $path = $dokumen->file_path;
+
+        if (!Storage::disk('public')->exists($path)) {
+            abort(404, 'File tidak ditemukan.');
+        }
+
+        // Gunakan file_name asli jika ada
+        if ($dokumen->file_name) {
+            $fileName = $dokumen->file_name;
+        } else {
+            // Fallback: buat nama dari judul + ekstensi dari path
+            $ext      = pathinfo($path, PATHINFO_EXTENSION);
+            $slug     = preg_replace('/[^\w\-]/', '-', $dokumen->judul);
+            $fileName = rtrim($slug, '-') . ($ext ? '.' . $ext : '');
+        }
+
+        $fullPath = Storage::disk('public')->path($path);
+        $mimeType = Storage::disk('public')->mimeType($path);
+
+        return response()->streamDownload(function () use ($fullPath) {
+            $handle = fopen($fullPath, 'rb');
+            while (!feof($handle)) {
+                echo fread($handle, 8192);
+                flush();
+            }
+            fclose($handle);
+        }, $fileName, [
+            'Content-Type'        => $mimeType,
+            'Content-Length'      => Storage::disk('public')->size($path),
+            'Content-Disposition' => 'attachment; filename="' . rawurlencode($fileName) . '"',
+            'Cache-Control'       => 'no-store',
+        ]);
     }
 }

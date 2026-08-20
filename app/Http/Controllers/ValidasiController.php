@@ -12,7 +12,7 @@ class ValidasiController extends Controller
     public function index()
     {
         $dokumens = Dokumen::where('status', 'menunggu_validasi')
-            ->with('uploader:id,name', 'kategori:id,nama')
+            ->with('uploader:id,name', 'kategori:id,nama', 'links')
             ->latest()
             ->get()
             ->map(fn ($d) => [
@@ -27,6 +27,12 @@ class ValidasiController extends Controller
                 'status_label' => $d->status_label,
                 'status_color' => $d->status_color,
                 'file_path'    => $d->file_path,
+                'file_name'    => $d->file_name,
+                'links'        => $d->links->map(fn ($l) => [
+                    'id'       => $l->id,
+                    'url'      => $l->url,
+                    'platform' => $l->platform,
+                ]),
                 'created_at'   => $d->created_at?->format('d M Y'),
             ]);
 

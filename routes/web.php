@@ -60,6 +60,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/repository', [RepositoryController::class, 'index'])->name('repository');
     Route::get('/repository/{dokumen}', [RepositoryController::class, 'show'])->name('repository.show');
     Route::get('/repository/{dokumen}/download', [RepositoryController::class, 'download'])->name('repository.download');
+
+    // Download universal — semua role, semua status
+    Route::get('/dokumen/{dokumen}/download', [DokumenController::class, 'download'])->name('dokumen.download');
 });
 
 // Panitia routes

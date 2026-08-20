@@ -16,6 +16,7 @@ class Dokumen extends Model
         'judul',
         'deskripsi',
         'file_path',
+        'file_name',
         'jenis',
         'status',
         'catatan_revisi',
@@ -76,5 +77,10 @@ class Dokumen extends Model
     public function ulasans(): HasMany
     {
         return $this->hasMany(Ulasan::class);
+    }
+
+    public function links(): HasMany
+    {
+        return $this->hasMany(DokumenLink::class);
     }
 }
